@@ -1,0 +1,124 @@
+<!-- templates/request_detail.html -->
+
+{% extends 'base.html' %}
+{% block title %}جزئیات درخواست #{{ req.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- ستون اصلی: فرم عملیات و تاریخچه -->
+        <div class="col-lg-8">
+            <!-- فرم عملیات -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-edit"></i> ثبت نظر یا اقدام</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">توضیحات شما:</label>
+                            <textarea name="comments" id="comments" class="form-control" rows="4" placeholder="اگر توضیحات خاصی دارید در اینجا وارد کنید..."></textarea>
+                        </div>
+
+                        <!-- دکمه‌ها بر اساس نقش کاربر نمایش داده می‌شوند -->
+                        <!-- templates/request_detail.html -->
+
+<div class="d-flex justify-content-end">
+    
+    <!-- سناریوی ۱: کاربر مسئول فعلی است و او ثبت‌کننده اصلی نیست -->
+    {% if user == req.current_assignee and user != req.initiator_user and req.status == 'IN_PROGRESS' %}
+        <button type="submit" name="action" value="approve" class="btn btn-success me-2"><i class="fas fa-check"></i> تایید و ارسال</button>
+        <button type="submit" name="action" value="return" class="btn btn-warning me-2"><i class="fas fa-undo"></i> بازگرداندن</button>
+        <button type="submit" name="action" value="reject" class="btn btn-danger me-2"><i class="fas fa-times"></i> رد کردن</button>
+    {% endif %}
+    
+    <!-- سناریوی ۲: درخواست به ثبت‌کننده اصلی بازگشت داده شده -->
+    {% if user == req.current_assignee and user == req.initiator_user and req.status == 'IN_PROGRESS' %}
+         <div class="alert alert-info w-100 text-center me-2">
+             این درخواست جهت اصلاح به شما بازگردانده شده است. لطفاً پس از افزودن توضیحات، آن را مجدداً ارسال کنید.
+         </div>
+        <button type="submit" name="action" value="resubmit" class="btn btn-primary me-2 flex-shrink-0"><i class="fas fa-paper-plane"></i> ارسال مجدد</button>
+    {% endif %}
+
+    <!-- سناریوی ۳: کاربر فقط ثبت‌کننده است و درخواست نزد فرد دیگری است -->
+    {% if user == req.initiator_user and user != req.current_assignee and req.status == 'IN_PROGRESS' %}
+         <!-- در این حالت فقط دکمه نظر نمایش داده می‌شود -->
+    {% endif %}
+    
+    <!-- دکمه ثبت نظر همیشه برای کاربران مجاز در دسترس است (تا زمانی که فرایند در حال انجام است) -->
+    {% if req.status == 'IN_PROGRESS' %}
+        <button type="submit" name="action" value="comment" class="btn btn-outline-primary"><i class="fas fa-comment"></i> ثبت نظر</button>
+    {% endif %}
+
+</div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- تاریخچه درخواست -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-history"></i> تاریخچه وقایع</h5>
+                </div>
+                <div class="card-body">
+                    {% for event in history %}
+                    <div class="d-flex mb-3 border-bottom pb-3">
+                        <i class="fas fa-user-circle fa-2x text-muted me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">
+                                {{ event.action_user.get_full_name|default:event.action_user.username }}
+                                
+                                <span class="badge 
+    {% if event.action_type == 'APPROVED' %} bg-success
+    {% elif event.action_type == 'REJECTED' %} bg-danger
+    {% elif event.action_type == 'COMMENTED' %} bg-info
+    {% elif event.action_type == 'RETURNED' %} bg-warning text-dark
+    {% elif event.action_type == 'RESUBMITTED' %} bg-primary <!-- این خط را اضافه کنید -->
+    {% else %} bg-secondary {% endif %}
+">{{ event.get_action_type_display }}</span>
+                            </h6>
+                            <small class="text-muted">{{ event.timestamp|date:"Y/m/d - H:i" }}</small>
+                            {% if event.comments %}
+                                <div class="mt-2 p-3 bg-light rounded" style="white-space: pre-wrap;">{{ event.comments }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                        <p class="text-center text-muted">هنوز هیچ رویدادی برای این درخواست ثبت نشده است.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ستون کناری: اطلاعات کلی درخواست -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                 <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-info-circle"></i> اطلاعات درخواست</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between"><strong>شناسه:</strong> #{{ req.id }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>فرایند:</strong> {{ req.process.name }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>ثبت کننده:</strong> {{ req.initiator_user.get_full_name }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>تاریخ ثبت:</strong> {{ req.created_at|date:"Y/m/d" }}</li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>وضعیت:</strong>
+                            {% if req.status == 'IN_PROGRESS' %}
+                                <span class="badge bg-warning text-dark">در حال بررسی</span>
+                            {% elif req.status == 'APPROVED' %}
+                                <span class="badge bg-success">تایید نهایی</span>
+                            {% elif req.status == 'REJECTED' %}
+                                <span class="badge bg-danger">رد شده</span>
+                            {% endif %}
+                        </li>
+                         <li class="list-group-item d-flex justify-content-between"><strong>مرحله فعلی:</strong> {{ req.current_step.name|default:"پایان یافته" }}</li>
+                         <li class="list-group-item d-flex justify-content-between"><strong>نزد کاربر:</strong> {{ req.current_assignee.get_full_name|default:"-" }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

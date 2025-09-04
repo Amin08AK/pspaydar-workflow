@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}تایید کد{% endblock %}
+{% block content %}
+    <h2>تایید کد</h2>
+    <p>کد ارسال شده به ایمیل {{ email }} را وارد کنید.</p>
+    {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ email }}">
+        <div class="mb-3">
+            <label for="otp" class="form-label">کد تایید:</label>
+            <input type="text" name="otp" id="otp" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">ورود</button>
+    </form>
+{% endblock %}

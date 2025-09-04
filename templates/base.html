@@ -1,0 +1,164 @@
+<!-- templates/base.html -->
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}داشبورد{% endblock %} - اتوماسیون فرایند</title>
+    
+    <!-- Google Fonts: Vazirmatn -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+
+    <style>
+        :root {
+            --sidebar-bg: #212529;
+            --primary-accent: #0d6efd;
+            --body-bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: var(--body-bg);
+            font-size: 15px;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 260px;
+            padding: 20px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            transition: all 0.3s;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #495057;
+        }
+        .sidebar-header h3 {
+            font-weight: 700;
+        }
+        .sidebar a {
+            color: #adb5bd;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: var(--primary-accent);
+            color: white;
+        }
+        .sidebar a i {
+            margin-left: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        .main-content {
+            margin-right: 260px;
+            padding: 30px;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.08);
+        }
+
+        {% if not user.is_authenticated %}
+        .main-content { margin-right: 0; }
+        .sidebar { display: none; }
+        {% endif %}
+    </style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ===== Toastify JS (این خط را اضافه کنید) ===== -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <!-- ===== اسکریپت نمایش پیام‌های جنگو با Toastify (این بخش را اضافه کنید) ===== -->
+    <script>
+{% if messages %}
+    {% for message in messages %}
+        Toastify({
+            text: "{{ message|safe }}", // <-- تغییر در این خط اعمال شد
+            duration: 5000, 
+            close: true,
+            gravity: "top", 
+            position: "center", 
+            stopOnFocus: true, 
+            style: {
+                {% if message.tags == 'success' %}
+                    background: "linear-gradient(to right, #00b09b, #96c93d)",
+                {% elif message.tags == 'warning' %}
+                    background: "linear-gradient(to right, #ffc107, #ff9800)",
+                {% elif message.tags == 'error' %}
+                     background: "linear-gradient(to right, #dc3545, #b22222)",
+                {% else %}
+                     background: "linear-gradient(to right, #0dcaf0, #0d6efd)",
+                {% endif %}
+            }
+        }).showToast();
+    {% endfor %}
+{% endif %}
+</script>
+    {% if user.is_authenticated %}
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-project-diagram"></i> اتوماسیون</h3>
+        </div>
+<nav>
+    <a href="{% url 'dashboard' %}" class="active"><i class="fas fa-tachometer-alt fa-fw"></i> داشبورد</a>
+    <!-- این خط را اضافه کنید -->
+    <a href="{% url 'password_change' %}"><i class="fas fa-key fa-fw"></i> تغییر رمز عبور</a>
+</nav>
+        
+        <div class="mt-auto" style="position: absolute; bottom: 20px; width: calc(100% - 40px);">
+            <div class="user-info p-2 rounded mb-2" style="background-color: #343a40;">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-user-circle fa-2x text-white"></i>
+                    <div class="me-2">
+                        <strong class="d-block text-white">{{ user.get_full_name|default:user.username }}</strong>
+                        <small class="text-white-50">کاربر سیستم</small>
+                    </div>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger w-100 mt-2">
+                <i class="fas fa-sign-out-alt"></i> خروج
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-content">
+        {% block content %}
+        <!-- محتوای صفحات مختلف اینجا قرار می‌گیرد -->
+        {% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
