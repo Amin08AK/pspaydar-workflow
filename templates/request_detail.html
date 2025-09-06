@@ -118,6 +118,17 @@
                     </ul>
                 </div>
             </div>
+            
+            <!-- ===== بخش نمایش گراف فرایند (با اصلاح اشتباه تایپی) ===== -->
+            {% if process_graph_svg %}
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-sitemap"></i> مسیر فرایند</h5>
+                </div>
+                <div class="card-body text-center p-2">{{ process_graph_svg|safe }}</div>
+            </div>
+            {% endif %}
+            <!-- ======================================= -->
         </div>
     </div>
 </div>

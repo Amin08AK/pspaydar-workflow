@@ -1,3 +1,5 @@
+# core/views.py
+
 import random
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
@@ -7,6 +9,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import login, logout, authenticate # authenticate را اضافه کنید
 from django.contrib import messages
+from .utils import generate_process_graph # ابزار جدید برای رسم گراف
 
 
 
@@ -130,6 +133,12 @@ def request_detail_view(request, request_id):
         messages.error(request, "درخواستی با این شناسه یافت نشد.")
         return redirect('dashboard')
 
+    # --- بخش جدید: تولید گراف فرایند برای نمایش به کاربر ---
+    process_graph_svg = None
+    # اگر فرایند هنوز تمام نشده و مرحله فعلی دارد، آن را هایلایت کن
+    if req.current_step:
+        process_graph_svg = generate_process_graph(req.process, req.current_step.id)
+
     if request.method == 'POST':
         comments = request.POST.get('comments', '').strip()
         action = request.POST.get('action')
@@ -232,5 +241,9 @@ def request_detail_view(request, request_id):
                 return redirect('dashboard')
 
     history = req.history.all().order_by('timestamp')
-    context = { 'req': req, 'history': history }
+    context = {
+        'req': req,
+        'history': history,
+        'process_graph_svg': process_graph_svg, # گراف را به کانتکست اضافه می‌کنیم
+    }
     return render(request, 'request_detail.html', context)

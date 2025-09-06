@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* استایل‌های گراف برای پنل ادمین (حالت روشن و تاریک) */
+    .graph-svg {
+        max-width: 100%;
+        height: auto;
+    }
+    .graph-bg > polygon {
+        fill: var(--grp-content-bg, #fff); /* متغیرهای تم پیش‌فرض ادمین */
+    }
+    .graph-node > polygon {
+        fill: var(--grp-module-bg, #f2f2f2);
+        stroke: var(--grp-module-border-color-light, #ccc);
+    }
+    .graph-node > text, .graph-edge > g > text {
+        fill: var(--grp-body-color, #333);
+    }
+    .graph-edge > path {
+        stroke: var(--grp-border-color-light, #999);
+    }
+    .graph-node.highlighted > polygon {
+        fill: var(--grp-button-bg, #417690);
+        stroke: var(--grp-button-bg, #417690);
+    }
+    .graph-node.highlighted > text {
+        fill: #fff;
+    }
+    .graph-node.start > polygon {
+        fill: var(--grp-color-ok, #70bf2b);
+    }
+    .graph-node.end > polygon {
+        fill: var(--grp-color-error, #d9534f);
+    }
+</style>
+{% endblock %}

@@ -14,7 +14,7 @@ if ON_PA_SERVER:
     # اگر روی سرور بودیم، این تنظیمات اعمال می‌شود
     DEBUG = False
     ALLOWED_HOSTS = ['amin01ak8.pythonanywhere.com']
-    
+
     # برو و اطلاعات حساس را از "گاوصندوق" (فایل secrets.json) بخوان
     secrets_path = '/home/amin01ak8/secrets.json'
     with open(secrets_path) as f:
@@ -27,7 +27,7 @@ else:
     # اگر روی کامپیوتر شخصی بودیم، این تنظیمات اعمال می‌شود
     DEBUG = True
     ALLOWED_HOSTS = []
-    
+
     # از مقادیر موقت و ناامن برای تست استفاده کن
     # این کد هرگز روی سرور اجرا نمی‌شود، پس مشکلی نیست
     secrets_path = 'secrets.json'
