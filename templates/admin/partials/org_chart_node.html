@@ -1,0 +1,18 @@
+<!-- templates/admin/partials/org_chart_node.html -->
+
+<li>
+    <div class="user-node">
+        <strong>{{ user.get_full_name|default:user.username }}</strong>
+        <br>
+        <small class="text-muted">{{ user.groups.first.name|default:'کاربر' }}</small>
+    </div>
+    
+    {% if user.subordinates.all %}
+        <ul>
+            {% for subordinate in user.subordinates.all %}
+                <!-- فراخوانی بازگشتی برای نمایش زیردستان -->
+                {% include "admin/partials/org_chart_node.html" with user=subordinate %}
+            {% endfor %}
+        </ul>
+    {% endif %}
+</li>

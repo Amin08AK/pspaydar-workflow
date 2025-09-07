@@ -1,0 +1,18 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{# این بلوک بعد از دکمه‌های اصلی ذخیره رندر می‌شود #}
+{% block submit_buttons_bottom %}
+    {# ابتدا دکمه‌های پیش‌فرض را نمایش بده #}
+    {{ block.super }}
+    
+    {# سپس گراف را در زیر آن‌ها اضافه کن #}
+    {% if process_graph_svg %}
+    <fieldset class="module aligned" style="margin-top: 20px;">
+        <h2>نمودار گردش کار</h2>
+        <div style="text-align: center; padding: 20px; background: var(--grp-content-bg, #f8f9fa); border-radius: 8px;">
+            {{ process_graph_svg|safe }}
+        </div>
+    </fieldset>
+    {% endif %}
+{% endblock %}

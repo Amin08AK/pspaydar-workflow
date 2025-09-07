@@ -1,0 +1,201 @@
+<!-- templates/request_detail.html -->
+
+{% extends 'base.html' %}
+{% load jalali_tags %}
+{% block title %}جزئیات درخواست #{{ req.id }}{% endblock %}
+
+{% block content %}
+<!-- ===== استایل‌های مربوط به تایم‌لاین گرافیکی ===== -->
+<style>
+.timeline {
+    position: relative;
+    padding-right: 50px; /* فضای سمت راست برای خط و آیکون‌ها (برای RTL) */
+    list-style: none;
+    margin-right: -15px;
+}
+.timeline:before {
+    content: '';
+    position: absolute;
+    right: 20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+.timeline-icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+    transform: translateX(50%); /* مرکز کردن آیکون روی خط (برای RTL) */
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 44px;
+    font-size: 1.2rem;
+    color: white;
+    z-index: 1;
+    border: 3px solid #f8f9fa; /* برای ایجاد فاصله با خط */
+}
+.timeline-content {
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    border: 1px solid #dee2e6;
+    padding: 1.25rem;
+}
+.timeline-content h6 {
+    font-weight: 600;
+}
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- ستون اصلی: فرم عملیات و تاریخچه -->
+        <div class="col-lg-8">
+            <!-- فرم عملیات -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-edit"></i> ثبت نظر یا اقدام</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">توضیحات شما:</label>
+                            <textarea name="comments" id="comments" class="form-control" rows="4" placeholder="اگر توضیحات خاصی دارید در اینجا وارد کنید..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="attachment" class="form-label">پیوست کردن فایل:</label>
+                            <input type="file" name="attachment" id="attachment" class="form-control">
+                        </div>
+
+                        <!-- دکمه‌ها -->
+                        <div class="d-flex justify-content-end align-items-center flex-wrap gap-2">
+                            {% if user == req.current_assignee and user != req.initiator_user and req.status == 'IN_PROGRESS' %}
+                                <button type="submit" name="action" value="approve" class="btn btn-success"><i class="fas fa-check"></i> تایید و ارسال</button>
+                                <button type="submit" name="action" value="return" class="btn btn-warning"><i class="fas fa-undo"></i> بازگرداندن</button>
+                                <button type="submit" name="action" value="reject" class="btn btn-danger"><i class="fas fa-times"></i> رد کردن</button>
+                            {% endif %}
+                            
+                            {% if user == req.current_assignee and user == req.initiator_user and req.status == 'IN_PROGRESS' %}
+                                <div class="alert alert-info w-100 text-center me-2 p-2">
+                                    این درخواست جهت اصلاح به شما بازگردانده شده است. لطفاً پس از افزودن توضیحات، آن را مجدداً ارسال کنید.
+                                </div>
+                                <button type="submit" name="action" value="resubmit" class="btn btn-primary flex-shrink-0"><i class="fas fa-paper-plane"></i> ارسال مجدد</button>
+                            {% endif %}
+
+                            {% if req.status == 'IN_PROGRESS' %}
+                                <button type="submit" name="action" value="comment" class="btn btn-outline-primary ms-auto"><i class="fas fa-comment"></i> ثبت نظر</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- تاریخچه درخواست با تایم‌لاین گرافیکی -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-history"></i> تاریخچه وقایع</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="timeline">
+                        {% for event in history %}
+                        <li class="timeline-item">
+                            <!-- آیکون بر اساس نوع اقدام -->
+                            {% if event.action_type == 'APPROVED' or event.action_type == 'RESUBMITTED' %}
+                                <div class="timeline-icon bg-success"><i class="fas fa-check"></i></div>
+                            {% elif event.action_type == 'REJECTED' %}
+                                <div class="timeline-icon bg-danger"><i class="fas fa-times"></i></div>
+                            {% elif event.action_type == 'RETURNED' %}
+                                <div class="timeline-icon bg-warning"><i class="fas fa-undo"></i></div>
+                            {% elif event.action_type == 'COMMENTED' %}
+                                <div class="timeline-icon bg-info"><i class="fas fa-comment"></i></div>
+                            {% else %}
+                                <div class="timeline-icon bg-secondary"><i class="fas fa-plus"></i></div>
+                            {% endif %}
+
+                            <!-- محتوای رویداد -->
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">
+                                        {{ event.action_user.get_full_name|default:event.action_user.username }}
+                                    </h6>
+                                    <small class="text-muted">{{ event.timestamp|to_jalali:"%Y/%m/%d - %H:%M" }}</small>
+                                </div>
+                                <span class="badge 
+                                    {% if event.action_type == 'APPROVED' %} bg-success
+                                    {% elif event.action_type == 'REJECTED' %} bg-danger
+                                    {% elif event.action_type == 'COMMENTED' %} bg-info
+                                    {% elif event.action_type == 'RETURNED' %} bg-warning text-dark
+                                    {% elif event.action_type == 'RESUBMITTED' %} bg-primary
+                                    {% else %} bg-secondary {% endif %}
+                                ">{{ event.get_action_type_display }}</span>
+                                
+                                {% if event.comments %}
+                                    <div class="mt-2 p-3 bg-light rounded" style="white-space: pre-wrap;">{{ event.comments }}</div>
+                                {% endif %}
+                                
+                                {% if event.attachment %}
+                                    <div class="mt-2">
+                                        <a href="{{ event.attachment.url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                            <i class="fas fa-paperclip"></i> مشاهده پیوست
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% empty %}
+                            <p class="text-center text-muted">هنوز هیچ رویدادی برای این درخواست ثبت نشده است.</p>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ستون کناری: اطلاعات کلی درخواست -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                 <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-info-circle"></i> اطلاعات درخواست</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between"><strong>شناسه:</strong> #{{ req.id }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>فرایند:</strong> {{ req.process.name }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>ثبت کننده:</strong> {{ req.initiator_user.get_full_name }}</li>
+                        <li class="list-group-item d-flex justify-content-between"><strong>تاریخ ثبت:</strong> {{ req.created_at|to_jalali:"%Y/%m/%d" }}</li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>وضعیت:</strong>
+                            {% if req.status == 'IN_PROGRESS' %}
+                                <span class="badge bg-warning text-dark">در حال بررسی</span>
+                            {% elif req.status == 'APPROVED' %}
+                                <span class="badge bg-success">تایید نهایی</span>
+                            {% elif req.status == 'REJECTED' %}
+                                <span class="badge bg-danger">رد شده</span>
+                            {% endif %}
+                        </li>
+                         <li class="list-group-item d-flex justify-content-between"><strong>مرحله فعلی:</strong> {{ req.current_step.name|default:"پایان یافته" }}</li>
+                         <li class="list-group-item d-flex justify-content-between"><strong>نزد کاربر:</strong> {{ req.current_assignee.get_full_name|default:"-" }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            {% if process_graph_svg %}
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-sitemap"></i> مسیر فرایند</h5>
+                </div>
+                <div class="card-body text-center p-2" style="direction: ltr;">
+                    {{ process_graph_svg|safe }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

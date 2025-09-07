@@ -1,0 +1,15 @@
+<!-- templates/admin/core/user/change_list.html -->
+
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  {% if show_org_chart_button %}
+    <li>
+      <a href="org-chart/" class="addlink">
+        <i class="fas fa-sitemap"></i> مشاهده چارت سازمانی
+      </a>
+    </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

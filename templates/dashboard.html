@@ -1,0 +1,213 @@
+<!-- templates/dashboard.html -->
+
+{% extends 'base.html' %}
+{% load jalali_tags %}
+{% block title %}داشبورد{% endblock %}
+
+{% block content %}
+<style>
+    .stat-card { color: white; border-radius: 0.75rem; overflow: hidden; position: relative; }
+    .stat-card .icon { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); font-size: 4rem; opacity: 0.2; }
+    .stat-card .stat-info { padding: 25px; text-align: right; }
+    .stat-card .stat-info h3 { font-size: 2.5rem; font-weight: 700; }
+    .stat-card .stat-info p { font-size: 1.1rem; }
+    .table thead { background-color: #e9ecef; }
+    .table td, .table th { vertical-align: middle; }
+    .process-list .list-group-item { font-weight: 500; }
+    .empty-state { text-align: center; padding: 50px; background-color: #ffffff; border-radius: 0.75rem; }
+    .empty-state i { font-size: 5rem; color: #dee2e6; }
+    .empty-state h4 { margin-top: 20px; color: #495057; }
+    .empty-state p { color: #6c757d; }
+</style>
+
+<div class="container-fluid">
+    
+    <!-- ===== افزودن mt-4 برای ایجاد فاصله از بالای صفحه ===== -->
+    <div class="row mb-4 mt-4">
+        <div class="col-lg-6 mb-4">
+            <div class="stat-card bg-success">
+                <div class="icon"><i class="fas fa-inbox"></i></div>
+                <div class="stat-info">
+                    <h3>{{ received_count }}</h3>
+                    <p>وظیفه در کارتابل شما</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="stat-card bg-warning text-dark">
+                <div class="icon"><i class="fas fa-spinner"></i></div>
+                <div class="stat-info">
+                    <h3>{{ in_progress_sent_count }}</h3>
+                    <p>درخواست در حال پیگیری</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Row for Main Content -->
+    <div class="row">
+        <!-- Inbox Column -->
+        <div class="col-lg-12">
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-tasks text-success"></i> کارتابل ورودی شما</h5>
+                    <!-- ===== فرم جستجوی کارتابل ===== -->
+                    <form method="get" action="{% url 'dashboard' %}" class="d-flex">
+                        <input type="text" name="search_received_id" class="form-control form-control-sm me-2" placeholder="جستجوی شناسه..." value="{{ search_values.search_received_id|default:'' }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-search"></i></button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    {% if received_requests %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>شناسه</th>
+                                    <th>فرایند</th>
+                                    <th>ثبت کننده</th>
+                                    <th>مرحله فعلی</th>
+                                    <th>تاریخ سررسید</th> <!-- ستون جدید -->
+                                    <th class="text-center">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in received_requests %}
+                                    <tr class="{% if req.deadline_status == 'urgent' %}table-warning{% elif req.deadline_status == 'overdue' %}table-danger{% endif %}">
+                                        <td><span class="badge bg-secondary">#{{ req.id }}</span></td>
+                                        <td><strong>{{ req.process.name }}</strong></td>
+                                        <td>{{ req.initiator_user.get_full_name|default:req.initiator_user.username }}</td>
+                                        <td>{{ req.current_step.name }}</td>
+                                        <td>
+                                            {% if req.due_date %}
+                                                {{ req.due_date|to_jalali:"%Y/%m/%d" }}
+                                                {% if req.deadline_status == 'urgent' %}
+                                                    <i class="fas fa-exclamation-triangle ms-1 text-warning" title="فوری"></i>
+                                                {% elif req.deadline_status == 'overdue' %}
+                                                    <i class="fas fa-fire ms-1 text-danger" title="معوق شده"></i>
+                                                {% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="{% url 'request_detail' req.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye"></i> مشاهده و اقدام
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-smile-beam"></i>
+                            <h4>کارتابل شما خالی است!</h4>
+                            <p>هیچ وظیفه‌ای برای بررسی وجود ندارد. روز خوبی داشته باشید!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Create New Request Column (بدون تغییر) -->
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-plus-circle text-primary"></i> شروع یک فرایند جدید</h5>
+                </div>
+                <div class="card-body process-list">
+                    {% if active_processes %}
+                        <div class="list-group">
+                            {% for process in active_processes %}
+                            <a href="{% url 'create_request' process.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                <div><i class="fas fa-file-alt fa-fw me-2"></i>{{ process.name }}</div>
+                                <span class="badge bg-primary rounded-pill"><i class="fas fa-play"></i></span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                         <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h4>فرایندی برای شروع یافت نشد!</h4>
+                            <p>در حال حاضر هیچ فرایند فعالی در سیستم تعریف نشده است.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sent Requests Column -->
+            <div class="card mb-4">
+                 <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-paper-plane text-info"></i> درخواست‌های ارسالی من (پیگیری)</h5>
+                    <!-- ===== فرم فیلتر پیشرفته ===== -->
+                    <form method="get" action="{% url 'dashboard' %}" class="d-flex align-items-center">
+                        <input type="text" name="search_sent_id" class="form-control form-control-sm me-2" placeholder="شناسه..." value="{{ search_values.search_sent_id|default:'' }}" style="width: 100px;">
+                        <select name="search_sent_process" class="form-select form-select-sm me-2" style="width: 150px;">
+                            <option value="">همه فرایندها</option>
+                            {% for p in active_processes %}
+                            <option value="{{ p.id }}" {% if search_values.search_sent_process == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="search_sent_status" class="form-select form-select-sm me-2" style="width: 150px;">
+                            <option value="">همه وضعیت‌ها</option>
+                            <option value="IN_PROGRESS" {% if search_values.search_sent_status == 'IN_PROGRESS' %}selected{% endif %}>در حال بررسی</option>
+                            <option value="APPROVED" {% if search_values.search_sent_status == 'APPROVED' %}selected{% endif %}>تایید شده</option>
+                            <option value="REJECTED" {% if search_values.search_sent_status == 'REJECTED' %}selected{% endif %}>رد شده</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="fas fa-filter"></i></button>
+                         <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-danger ms-1" title="حذف فیلترها"><i class="fas fa-times"></i></a>
+                    </form>
+                </div>
+                <div class="card-body">
+                    {% if sent_requests %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>شناسه</th>
+                                    <th>فرایند</th>
+                                    <th>مرحله فعلی</th>
+                                    <th>نزد کاربر</th>
+                                    <th>وضعیت</th>
+                                    <th class="text-center">عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in sent_requests %}
+                                <tr>
+                                    <td><span class="badge bg-secondary">#{{ req.id }}</span></td>
+                                    <td><strong>{{ req.process.name }}</strong></td>
+                                    <td>{{ req.current_step.name|default:"پایان یافته" }}</td>
+                                    <td>{{ req.current_assignee.get_full_name|default:"-" }}</td>
+                                    <td>
+                                        {% if req.status == 'IN_PROGRESS' %}
+                                            <span class="badge bg-warning text-dark"><i class="fas fa-spinner fa-spin"></i> در حال بررسی</span>
+                                        {% elif req.status == 'APPROVED' %}
+                                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> تایید نهایی</span>
+                                        {% elif req.status == 'REJECTED' %}
+                                            <span class="badge bg-danger"><i class="fas fa-times-circle"></i> رد شده</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'request_detail' req.id %}" class="btn btn-info btn-sm">
+                                            <i class="fas fa-search"></i> پیگیری
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-paper-plane"></i>
+                            <h4>شما هنوز درخواستی ارسال نکرده‌اید!</h4>
+                            <p>برای شروع، از بخش "شروع یک فرایند جدید" استفاده کنید.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
